@@ -1,0 +1,2 @@
+[dependencies]
+omnipaxos_core = { git = "https://github.com/haraldng/omnipaxos" }
