@@ -1,15 +1,16 @@
 use omnipaxos_core::storage::Snapshot;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KeyValue {
     pub key: String,
-    pub value: u64,
+    pub value: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct KVSnapshot {
-    snapshotted: HashMap<String, u64>,
+    snapshotted: HashMap<String, String>,
 }
 
 impl Snapshot<KeyValue> for KVSnapshot {
@@ -17,7 +18,7 @@ impl Snapshot<KeyValue> for KVSnapshot {
         let mut snapshotted = HashMap::new();
         for e in entries {
             let KeyValue { key, value } = e;
-            snapshotted.insert(key.clone(), *value);
+            snapshotted.insert(key.clone(), value.to_string());
         }
         Self { snapshotted }
     }
