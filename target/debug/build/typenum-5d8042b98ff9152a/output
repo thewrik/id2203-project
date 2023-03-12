@@ -1,0 +1,3 @@
+cargo:rerun-if-changed=build/main.rs
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/wrikkarmakar/Documents/KTH/ID2203/id2203-project/target/debug/build/typenum-5d8042b98ff9152a/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/wrikkarmakar/Documents/KTH/ID2203/id2203-project/target/debug/build/typenum-5d8042b98ff9152a/out/op.rs
