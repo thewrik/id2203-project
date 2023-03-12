@@ -106,8 +106,28 @@ fn increase_visit_count(pid: u64, omnipaxos : &Arc<Mutex<OmniPaxosKV>>) -> () {
     omnipaxos
         .lock()
         .unwrap()
+        .set_priority(existing_visits + 1);
+
+    omnipaxos
+        .lock()
+        .unwrap()
         .append(entry)
         .expect("append failed");
+
+    omnipaxos.
+        
+        election_timeout();
+
+    std::thread::sleep(WAIT_DECIDED_TIMEOUT);
+    
+
+    let leader = omnipaxos
+        .lock()
+        .unwrap()
+        .get_current_leader()
+        .expect("Failed to get leader");
+
+    println!("Current leader: {}", leader);
 }
 async fn append_to_kv(data: KeyValue, omnipaxos : Arc<Mutex<OmniPaxosKV>>, pid: u64) -> Result<impl warp::Reply, Infallible> {
     omnipaxos
@@ -281,15 +301,7 @@ async fn main() {
                 op_server.run().await;
             }
         });
-        // let entry = KeyValue {
-        //     key : format!("visits_at_server_{}$1", pid),
-        //     value : (0).to_string()
-        // };
-    
-        // omni_paxos
-        //     .lock()
-        //     .unwrap()
-        //     .append(entry)
+
         op_server_handles.insert(pid, (omni_paxos, join_handle));
     }
 
