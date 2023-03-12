@@ -13,6 +13,13 @@ use omnipaxos_core::{
 
 use warp::{http, Filter, http::StatusCode};
 use omnipaxos_storage::memory_storage::MemoryStorage;
+use omnipaxos_storage::{
+    persistent_storage::{PersistentStorage, PersistentStorageConfig},
+};
+
+use commitlog::LogOptions;
+use sled::{Config};
+
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -24,7 +31,7 @@ mod kv;
 mod server;
 mod util;
 
-type OmniPaxosKV = OmniPaxos<KeyValue, KVSnapshot, MemoryStorage<KeyValue, KVSnapshot>>;
+type OmniPaxosKV = OmniPaxos<KeyValue, KVSnapshot, PersistentStorage<KeyValue, KVSnapshot>>;
 
 type Server_Handles = HashMap<u64, (Arc<Mutex<OmniPaxosKV>>, JoinHandle<()>)>;
 
@@ -45,15 +52,11 @@ fn initialise_channels() -> (
     (sender_channels, receiver_channels)
 }
 
-fn with_pid(pid: u64) -> impl Filter<Extract = (u64,), Error = Infallible> + Clone {
-    warp::any().map(move || pid)
-}
-
 fn with_omnipaxos(omnipaxos : Arc<Mutex<OmniPaxosKV>>) -> impl Filter<Extract = (Arc<Mutex<OmniPaxosKV>>,), Error = Infallible> + Clone {
     warp::any().map(move || omnipaxos.clone())
 }
 
-async fn append_to_kv(data: KeyValue, id: u64, omnipaxos : Arc<Mutex<OmniPaxosKV>>) -> Result<impl warp::Reply, Infallible> {
+async fn append_to_kv(data: KeyValue, omnipaxos : Arc<Mutex<OmniPaxosKV>>) -> Result<impl warp::Reply, Infallible> {
     omnipaxos
         .lock()
         .unwrap()
@@ -64,7 +67,7 @@ async fn append_to_kv(data: KeyValue, id: u64, omnipaxos : Arc<Mutex<OmniPaxosKV
     Ok(StatusCode::OK)
 }
 
-async fn list_all(id: u64, omnipaxos : Arc<Mutex<OmniPaxosKV>>) -> Result<impl warp::Reply, Infallible> {
+async fn list_all(omnipaxos : Arc<Mutex<OmniPaxosKV>>) -> Result<impl warp::Reply, Infallible> {
 
     let committed_ents = omnipaxos
         .lock()
@@ -94,13 +97,11 @@ fn get_rule_for_pid(pid: u64, op_server_handles: &Server_Handles) -> impl Filter
     let post_path = warp::path("post")
         .and(warp::post())
         .and(json_body())
-        .and(with_pid(pid))
         .and(with_omnipaxos(omnipaxos_id_instance.clone()))
         .and_then(append_to_kv);
 
     let get_entire_path = warp::path("get_all")
         .and(warp::get())
-        .and(with_pid(pid))
         .and(with_omnipaxos(omnipaxos_id_instance.clone()))
         .and_then(list_all);
 
@@ -120,6 +121,8 @@ async fn main() {
     let mut op_server_handles : Server_Handles = HashMap::new();
     let (sender_channels, mut receiver_channels) = initialise_channels();
 
+    
+
     for pid in SERVERS {
         let peers = SERVERS.iter().filter(|&&p| p != pid).copied().collect();
         
@@ -129,8 +132,20 @@ async fn main() {
             peers,
             ..Default::default()
         };
+
+        // Persistent Storage Configuration
+        let storage_path = format!("storage/process_{}", pid);   
+        let logopts = LogOptions::new(storage_path.to_string());
+
+
+        let mut storage_config = PersistentStorageConfig::default();
+        storage_config.set_path(storage_path.to_string());
+        storage_config.set_commitlog_options(logopts);
+        
+        let storage = PersistentStorage::open(storage_config);
+
         let omni_paxos: Arc<Mutex<OmniPaxosKV>> =
-            Arc::new(Mutex::new(op_config.build(MemoryStorage::default())));
+            Arc::new(Mutex::new(op_config.build(storage)));
         let mut op_server = OmniPaxosServer {
             omni_paxos: Arc::clone(&omni_paxos),
             incoming: receiver_channels.remove(&pid).unwrap(),
