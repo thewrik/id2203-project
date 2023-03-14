@@ -114,10 +114,6 @@ fn increase_visit_count(pid: u64, omnipaxos : &Arc<Mutex<OmniPaxosKV>>) -> () {
         .append(entry)
         .expect("append failed");
 
-    omnipaxos.
-        
-        election_timeout();
-
     std::thread::sleep(WAIT_DECIDED_TIMEOUT);
     
 
