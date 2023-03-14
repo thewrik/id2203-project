@@ -8,7 +8,7 @@ pub struct KeyValue {
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct KVSnapshot {
     snapshotted: HashMap<String, String>,
 }

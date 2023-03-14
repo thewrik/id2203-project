@@ -1,5 +1,5 @@
 [package]
-name = "web_server"
+name = "distributed_web_server"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 omnipaxos_core = { git = "https://github.com/haraldng/omnipaxos" }
-omnipaxos_storage = { git = "https://github.com/haraldng/omnipaxos" }
-tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+omnipaxos_storage = { git = "https://github.com/haraldng/omnipaxos", default-features = true } 
 warp = "0.3"
+parking_lot = "0.10.0"
+commitlog = "0.2.0"
+sled = "0.34.7"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
