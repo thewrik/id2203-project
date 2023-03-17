@@ -23,7 +23,6 @@ use tokio::{runtime::Builder, sync::mpsc};
 mod kv;
 mod server;
 mod util;
-mod tests;
 
 type OmniPaxosKV = OmniPaxos<KeyValue, KVSnapshot, MemoryStorage<KeyValue, KVSnapshot>>;
 
